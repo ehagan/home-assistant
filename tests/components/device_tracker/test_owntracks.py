@@ -27,94 +27,162 @@ WAYPOINT_TOPIC_BLOCKED = 'owntracks/{}/{}/waypoints'.format(
 DEVICE_TRACKER_STATE = 'device_tracker.{}_{}'.format(USER, DEVICE)
 
 IBEACON_DEVICE = 'keys'
-REGION_TRACKER_STATE = 'device_tracker.beacon_{}'.format(IBEACON_DEVICE)
+MOBILE_BEACON_TRACKER_STATE = 'device_tracker.beacon_{}'.format(IBEACON_DEVICE)
 
 CONF_MAX_GPS_ACCURACY = 'max_gps_accuracy'
 CONF_WAYPOINT_IMPORT = owntracks.CONF_WAYPOINT_IMPORT
 CONF_WAYPOINT_WHITELIST = owntracks.CONF_WAYPOINT_WHITELIST
 CONF_SECRET = owntracks.CONF_SECRET
 
-LOCATION_MESSAGE = {
-    'batt': 92,
-    'cog': 248,
-    'tid': 'user',
-    'lon': 1.0,
-    't': 'u',
-    'alt': 27,
+TEST_ZONE_LAT=45.0
+TEST_ZONE_LON=90.0
+TEST_ZONE_DEG_PER_M=0.0000127
+FIVE_M_IN_DEG=TEST_ZONE_DEG_PER_M * 5.0
+
+#------------------------------------------------------------------------
+# Home Assistant Zones
+INNER_ZONE = {
+    'name': 'zone',
+    'latitude': TEST_ZONE_LAT+0.1,
+    'longitude': TEST_ZONE_LON+0.1,
+    'radius': 10
+}
+
+OUTER_ZONE = {
+    'name': 'zone',
+    'latitude': TEST_ZONE_LAT,
+    'longitude': TEST_ZONE_LON,
+    'radius': 100000
+}
+
+
+def build_message(test_params, default_params):
+    """ Build a test message from a set of the parameters
+        of interest and a default message to override
+        with those test parameters """
+    new_params = default_params.copy()
+    new_params.update(test_params)
+    return new_params
+
+#------------------------------------------------------------------------
+# Default message parameters
+
+DEFAULT_LOCATION_MESSAGE = {
+    '_type': 'location',
+    'lon': OUTER_ZONE['longitude'],
+    'lat': OUTER_ZONE['latitude'],
     'acc': 60,
-    'p': 101.3977584838867,
-    'vac': 4,
-    'lat': 2.0,
-    '_type': 'location',
-    'tst': 1,
-    'vel': 0}
-
-LOCATION_MESSAGE_INACCURATE = {
+    'tid': 'user',
+    't': 'u',
     'batt': 92,
     'cog': 248,
-    'tid': 'user',
-    'lon': 2.0,
-    't': 'u',
     'alt': 27,
-    'acc': 2000,
     'p': 101.3977584838867,
     'vac': 4,
-    'lat': 6.0,
-    '_type': 'location',
     'tst': 1,
-    'vel': 0}
+    'vel': 0
+}
 
-LOCATION_MESSAGE_ZERO_ACCURACY = {
-    'batt': 92,
-    'cog': 248,
-    'tid': 'user',
-    'lon': 2.0,
-    't': 'u',
-    'alt': 27,
-    'acc': 0,
-    'p': 101.3977584838867,
-    'vac': 4,
-    'lat': 6.0,
-    '_type': 'location',
-    'tst': 1,
-    'vel': 0}
-
-REGION_ENTER_MESSAGE = {
-    'lon': 1.0,
+# Owntracks will publish a transition when crossing
+# a circular region boundary.
+ZONE_EDGE = TEST_ZONE_DEG_PER_M * INNER_ZONE['radius']
+DEFAULT_TRANSITION_MESSAGE = {
+    '_type': 'transition',
+    't': 'c',
+    'lon': INNER_ZONE['longitude'],
+    'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
+    'acc': 60,
     'event': 'enter',
     'tid': 'user',
     'desc': 'inner',
     'wtst': 1,
+    'tst': 2
+}
+
+# iBeacons that are named the same as an HA zone
+# are used to trigger enter and leave updates
+# for that zone. In this case the "inner" zone.
+#
+# iBeacons that do not share an HA zone name
+# are treated as mobile tracking devices for
+# objects which can't track themselves e.g. keys.
+#
+# iBeacons are typically configured with the
+# default lat/lon 0.0/0.0 and have acc 0.0 but
+# regardless the reported location is not trusted.
+#
+# Owntracks will send both a location message
+# for the device and an 'event' message for
+# the beacon transition.
+DEFAULT_BEACON_TRANSITION_MESSAGE = {
+    '_type': 'transition'
     't': 'b',
-    'acc': 60,
-    'tst': 2,
-    'lat': 2.0,
-    '_type': 'transition'}
-
-
-REGION_LEAVE_MESSAGE = {
-    'lon': 1.0,
-    'event': 'leave',
+    'lon': 0.0,
+    'lat': 0.0,
+    'acc': 0.0,
+    'event': 'enter',
     'tid': 'user',
     'desc': 'inner',
     'wtst': 1,
-    't': 'b',
-    'acc': 60,
-    'tst': 2,
-    'lat': 2.0,
-    '_type': 'transition'}
+    'tst': 2
+}
 
-REGION_LEAVE_INACCURATE_MESSAGE = {
-    'lon': 10.0,
-    'event': 'leave',
-    'tid': 'user',
-    'desc': 'inner',
-    'wtst': 1,
-    't': 'b',
-    'acc': 2000,
-    'tst': 2,
-    'lat': 20.0,
-    '_type': 'transition'}
+LOCATION_MESSAGE = DEFAULT_LOCATION_MESAGE
+
+LOCATION_MESSAGE_INACCURATE = build_message(
+    { 'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
+      'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
+      'acc': 2000 },
+    LOCATION_MESSAGE)
+
+LOCATION_MESSAGE_ZERO_ACCURACY = build_message(
+    { 'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
+      'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
+      'acc': 0 },
+    LOCATION_MESSAGE)
+
+REGION_GPS_ENTER_MESSAGE =
+    DEFAULT_TRANSITION_MESSAGE
+
+REGION_GPS_LEAVE_MESSAGE = build_message(
+    { 'event': 'leave' },
+    DEFAULT_TRANSITION_MESSAGE)
+
+REGION_GPS_ENTER_MESSAGE_INACCURATE = build_message(
+    { 'acc': 2000 },
+    REGION_GPS_ENTER_MESSAGE)
+
+REGION_GPS_LEAVE_MESSAGE_INACCURATE = build_message(
+    { 'acc': 2000 },
+    REGION_GPS_LEAVE_MESSAGE)
+
+REGION_GPS_ENTER_MESSAGE_ZERO = build_message(
+    { 'acc': 0 },
+    REGION_GPS_ENTER_MESSAGE)
+
+REGION_GPS_LEAVE_MESSAGE_ZERO = build_message(
+    { 'acc': 0 },
+    REGION_GPS_LEAVE_MESSAGE)
+
+REGION_BEACON_ENTER_MESSAGE =
+    DEFAULT_BEACON_TRANSITION_MESSAGE
+
+REGION_BEACON_LEAVE_MESSAGE = build_message(
+    { 'event': 'leave' },
+    DEFAULT_BEACON_TRANSITION_MESSAGE)
+
+REGION_BEACON_LEAVE_MESSAGE_INACCURATE = build_message(
+    { 'acc': 2000 },
+    REGION_BEACON_LEAVE_MESSAGE)
+
+MOBILE_BEACON_ENTER_EVENT_MESSAGE = build_message(
+    { 'desc': IBEACON_DEVICE },
+    DEFAULT_BEACON_TRANSITION_MESSAGE)
+
+MOBILE_BEACON_LEAVE_EVENT_MESSAGE = build_message(
+    { 'desc': IBEACON_DEVICE,
+      'event': 'leave' },
+    DEFAULT_BEACON_TRANSITION_MESSAGE)
 
 WAYPOINTS_EXPORTED_MESSAGE = {
     "_type": "waypoints",
@@ -159,52 +227,52 @@ WAYPOINT_ENTITY_NAMES = ['zone.greg_phone__exp_wayp1',
                          'zone.ram_phone__exp_wayp1',
                          'zone.ram_phone__exp_wayp2']
 
-REGION_ENTER_ZERO_MESSAGE = {
-    'lon': 1.0,
-    'event': 'enter',
-    'tid': 'user',
-    'desc': 'inner',
-    'wtst': 1,
-    't': 'b',
-    'acc': 0,
-    'tst': 2,
-    'lat': 2.0,
-    '_type': 'transition'}
-
-REGION_LEAVE_ZERO_MESSAGE = {
-    'lon': 10.0,
-    'event': 'leave',
-    'tid': 'user',
-    'desc': 'inner',
-    'wtst': 1,
-    't': 'b',
-    'acc': 0,
-    'tst': 2,
-    'lat': 20.0,
-    '_type': 'transition'}
-
 BAD_JSON_PREFIX = '--$this is bad json#--'
 BAD_JSON_SUFFIX = '** and it ends here ^^'
 
 TEST_SECRET_KEY = 's3cretkey'
+
+# CIPHERTEXT = ('qm1A83I6TVFRmH5343xy+cbex8jBBxDFkHRuJhELVKVRA/DgXcyKtghw'
+#              '9pOw75Lo4gHcyy2wV5CmkjrpKEBR7Qhye4AR0y7hOvlx6U/a3GuY1+W8'
+#              'I4smrLkwMvGgBOzXSNdVTzbFTHDvG3gRRaNHFkt2+5MsbH2Dd6CXmpzq'
+#              'DIfSN7QzwOevuvNIElii5MlFxI6ZnYIDYA/ZdnAXHEVsNIbyT2N0CXt3'
+#              'fTPzgGtFzsufx40EEUkC06J7QTJl7lLG6qaLW1cCWp86Vp0eL3vtZ6xq')
+
+# MOCK_CIPHERTEXT = ('gANDCXMzY3JldGtleXEAQ6p7ImxvbiI6IDEuMCwgInQiOiAidSIsICJi'
+#                    'YXR0IjogOTIsICJhY2MiOiA2MCwgInZlbCI6IDAsICJfdHlwZSI6ICJs'
+#                    'b2NhdGlvbiIsICJ2YWMiOiA0LCAicCI6IDEwMS4zOTc3NTg0ODM4ODY3'
+#                    'LCAidHN0IjogMSwgImxhdCI6IDIuMCwgImFsdCI6IDI3LCAiY29nIjog'
+#                    'MjQ4LCAidGlkIjogInVzZXIifXEBhnECLg==')
+
+def generate_ciphers(secret)
+    """ Generate test ciphers for the DEFAULT_LOCATION_MESSAGE
+        libnacl ciphertext generation will fail if the module
+        cannot be imported. The test for decryption also relies
+        on this library and won't be run without it. """
+    import json, pickle, base64
+
+    try:
+        from libnacl import crypto_secretbox_KEYBYTES as KEYLEN
+        from libnacl.secret import SecretBox
+        key = secret.encode("utf-8")[:KEYLEN].ljust(KEYLEN,b'\0')
+        ctxt = base64.b64encode(SecretBox(key).encrypt(json.dumps(DEFAULT_LOCATION_MESSAGE).encode("utf-8")))
+    except (ImportError, OSError):
+        ctxt = ''
+
+    mctxt = base64.b64encode(pickle.dumps((secret, json.dumps(DEFAULT_LOCATION_MESSAGE))))
+    return (ctxt, mctxt)
+
+CIPHERTEXT, MOCK_CIPHERTEXT = generate_ciphers(TEST_SECRET_KEY)
+
 ENCRYPTED_LOCATION_MESSAGE = {
     # Encrypted version of LOCATION_MESSAGE using libsodium and TEST_SECRET_KEY
     '_type': 'encrypted',
-    'data': ('qm1A83I6TVFRmH5343xy+cbex8jBBxDFkHRuJhELVKVRA/DgXcyKtghw'
-             '9pOw75Lo4gHcyy2wV5CmkjrpKEBR7Qhye4AR0y7hOvlx6U/a3GuY1+W8'
-             'I4smrLkwMvGgBOzXSNdVTzbFTHDvG3gRRaNHFkt2+5MsbH2Dd6CXmpzq'
-             'DIfSN7QzwOevuvNIElii5MlFxI6ZnYIDYA/ZdnAXHEVsNIbyT2N0CXt3'
-             'fTPzgGtFzsufx40EEUkC06J7QTJl7lLG6qaLW1cCWp86Vp0eL3vtZ6xq')}
+    'data': CIPHERTEXT }
 
 MOCK_ENCRYPTED_LOCATION_MESSAGE = {
     # Mock-encrypted version of LOCATION_MESSAGE using pickle
     '_type': 'encrypted',
-    'data': ('gANDCXMzY3JldGtleXEAQ6p7ImxvbiI6IDEuMCwgInQiOiAidSIsICJi'
-             'YXR0IjogOTIsICJhY2MiOiA2MCwgInZlbCI6IDAsICJfdHlwZSI6ICJs'
-             'b2NhdGlvbiIsICJ2YWMiOiA0LCAicCI6IDEwMS4zOTc3NTg0ODM4ODY3'
-             'LCAidHN0IjogMSwgImxhdCI6IDIuMCwgImFsdCI6IDI3LCAiY29nIjog'
-             'MjQ4LCAidGlkIjogInVzZXIifXEBhnECLg==')
-}
+    'data': MOCK_CIPHERTEXT }
 
 
 class BaseMQTT(unittest.TestCase):
@@ -280,33 +348,15 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
                 }})
 
         self.hass.states.set(
-            'zone.inner', 'zoning',
-            {
-                'name': 'zone',
-                'latitude': 2.1,
-                'longitude': 1.1,
-                'radius': 10
-            })
+            'zone.inner', 'zoning', INNER_ZONE)
 
         self.hass.states.set(
-            'zone.inner_2', 'zoning',
-            {
-                'name': 'zone',
-                'latitude': 2.1,
-                'longitude': 1.1,
-                'radius': 10
-            })
+            'zone.inner_2', 'zoning', INNER_ZONE)
 
         self.hass.states.set(
-            'zone.outer', 'zoning',
-            {
-                'name': 'zone',
-                'latitude': 2.0,
-                'longitude': 1.0,
-                'radius': 100000
-            })
+            'zone.outer', 'zoning', OUTER_ZONE)
 
-        # Clear state between teste
+        # Clear state between tests
         self.hass.states.set(DEVICE_TRACKER_STATE, None)
 
     def teardown_method(self, _):
@@ -315,23 +365,22 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
     def assert_tracker_state(self, location):
         """Test the assertion of a tracker state."""
-        state = self.hass.states.get(REGION_TRACKER_STATE)
+        state = self.hass.states.get(MOBILE_BEACON_TRACKER_STATE)
         self.assertEqual(state.state, location)
 
     def assert_tracker_latitude(self, latitude):
         """Test the assertion of a tracker latitude."""
-        state = self.hass.states.get(REGION_TRACKER_STATE)
+        state = self.hass.states.get(MOBILE_BEACON_TRACKER_STATE)
         self.assertEqual(state.attributes.get('latitude'), latitude)
 
     def assert_tracker_accuracy(self, accuracy):
         """Test the assertion of a tracker accuracy."""
-        state = self.hass.states.get(REGION_TRACKER_STATE)
+        state = self.hass.states.get(MOBILE_BEACON_TRACKER_STATE)
         self.assertEqual(state.attributes.get('gps_accuracy'), accuracy)
 
     def test_location_invalid_devid(self):  # pylint: disable=invalid-name
         """Test the update of a location."""
         self.send_message('owntracks/paulus/nexus-5x', LOCATION_MESSAGE)
-
         state = self.hass.states.get('device_tracker.paulus_nexus5x')
         assert state.state == 'outer'
 
@@ -339,8 +388,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         """Test the update of a location."""
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
 
-        self.assert_location_latitude(2.0)
-        self.assert_location_accuracy(60.0)
+        self.assert_location_latitude(LOCATION_MESSAGE['lat'])
+        self.assert_location_accuracy(LOCATION_MESSAGE['acc'])
         self.assert_location_state('outer')
 
     def test_location_inaccurate_gps(self):
@@ -348,90 +397,122 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE_INACCURATE)
 
-        self.assert_location_latitude(2.0)
-        self.assert_location_longitude(1.0)
+        # Ignored inaccurate GPS. Location remains at previous.
+        self.assert_location_latitude(LOCATION_MESSAGE['lat'])
+        self.assert_location_longitude(LOCATION_MESSAGE['lon'])
 
     def test_location_zero_accuracy_gps(self):
         """Ignore the location for zero accuracy GPS information."""
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE_ZERO_ACCURACY)
 
-        self.assert_location_latitude(2.0)
-        self.assert_location_longitude(1.0)
+        # Ignored inaccurate GPS. Location remains at previous.
+        self.assert_location_latitude(LOCATION_MESSAGE['lat'])
+        self.assert_location_longitude(LOCATION_MESSAGE['lon'])
+
+    # ------------------------------------------------------------------------
+    # GPS based event entry / exit testing
 
     def test_event_entry_exit(self):
         """Test the entry event."""
-        self.send_message(EVENT_TOPIC, REGION_ENTER_MESSAGE)
+        # Entering the circular zone named "inner"
+
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
 
         # Enter uses the zone's gps co-ords
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
 
         #  Updates ignored when in a zone
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        #  note that LOCATION_MESSAGE is actually pretty far
+        #  from INNER_ZONE and has good accuracy. I haven't
+        #  received a transition message though so I'm still
+        #  asssociated with the inner zone regardless of GPS.
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
-        self.send_message(EVENT_TOPIC, REGION_LEAVE_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
 
         # Exit switches back to GPS
-        self.assert_location_latitude(2.0)
-        self.assert_location_accuracy(60.0)
+        self.assert_location_latitude(REGION_GPS_LEAVE_MESSAGE['lat'])
+        self.assert_location_accuracy(REGION_GPS_LEAVE_MESSAGE['acc'])
         self.assert_location_state('outer')
 
         # Left clean zone state
         self.assertFalse(self.context.regions_entered[USER])
 
+        self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
+
+        # Now sending a location update moves me again.
+        self.assert_location_latitude(LOCATION_MESSAGE['lat'])
+        self.assert_location_accuracy(LOCATION_MESSAGE['acc'])
+
     def test_event_with_spaces(self):
         """Test the entry event."""
-        message = REGION_ENTER_MESSAGE.copy()
-        message['desc'] = "inner 2"
+        message = build_message({'desc': "inner 2"},
+                                REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner 2')
 
-        message = REGION_LEAVE_MESSAGE.copy()
-        message['desc'] = "inner 2"
+        message = build_message({'desc': "inner 2"},
+                                REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
         # Left clean zone state
         self.assertFalse(self.context.regions_entered[USER])
 
-    def test_event_entry_exit_inaccurate(self):
-        """Test the event for inaccurate exit."""
-        self.send_message(EVENT_TOPIC, REGION_ENTER_MESSAGE)
+    def test_event_entry_inaccurate(self):
+        """Test the event for inaccurate entry."""
 
-        # Enter uses the zone's gps co-ords
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        # Set location to the outer zone.
+        self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
+
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE_INACCURATE)
+
+        # I enter the zone even though the message GPS was inaccurate.
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
-        self.send_message(EVENT_TOPIC, REGION_LEAVE_INACCURATE_MESSAGE)
+    def test_event_entry_exit_inaccurate(self):
+        """Test the event for inaccurate exit."""
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
+
+        # Enter uses the zone's gps co-ords
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
+        self.assert_location_state('inner')
+
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE_INACCURATE)
 
         # Exit doesn't use inaccurate gps
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
         # But does exit region correctly
         self.assertFalse(self.context.regions_entered[USER])
+        # TODO: This is potentially confusing. My location is
+        #       'inner' but my regions doesn't contain 'inner' anymore.
 
     def test_event_entry_exit_zero_accuracy(self):
         """Test entry/exit events with accuracy zero."""
-        self.send_message(EVENT_TOPIC, REGION_ENTER_ZERO_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE_ZERO)
 
         # Enter uses the zone's gps co-ords
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
-        self.send_message(EVENT_TOPIC, REGION_LEAVE_ZERO_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE_ZERO)
 
         # Exit doesn't use zero gps
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
         # But does exit region correctly
@@ -439,13 +520,14 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
     def test_event_exit_outside_zone_sets_away(self):
         """Test the event for exit zone."""
-        self.send_message(EVENT_TOPIC, REGION_ENTER_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
         self.assert_location_state('inner')
 
         # Exit message far away GPS location
-        message = REGION_LEAVE_MESSAGE.copy()
-        message['lon'] = 90.1
-        message['lat'] = 90.1
+        message = build_message(
+            { 'lon': 90.0,
+              'lat': 90.0 },
+            REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
         # Exit forces zone change to away
@@ -454,73 +536,76 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
     def test_event_entry_exit_right_order(self):
         """Test the event for ordering."""
         # Enter inner zone
-        self.send_message(EVENT_TOPIC, REGION_ENTER_MESSAGE)
-
+        # Set location to the outer zone.
+        self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
         self.assert_location_state('inner')
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
 
         # Enter inner2 zone
-        message = REGION_ENTER_MESSAGE.copy()
-        message['desc'] = "inner_2"
+        message = build_message(
+            { 'desc': "inner_2" },
+            REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
 
         # Exit inner_2 - should be in 'inner'
-        message = REGION_LEAVE_MESSAGE.copy()
-        message['desc'] = "inner_2"
+        message = build_message(
+            { 'desc': "inner_2" },
+            REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner')
-        self.assert_location_latitude(2.1)
-        self.assert_location_accuracy(10.0)
 
         # Exit inner - should be in 'outer'
-        self.send_message(EVENT_TOPIC, REGION_LEAVE_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
+        self.assert_location_latitude(LOCATION_MESSAGE['lat'])
+        self.assert_location_accuracy(LOCATION_MESSAGE['acc'])
         self.assert_location_state('outer')
-        self.assert_location_latitude(2.0)
-        self.assert_location_accuracy(60.0)
 
     def test_event_entry_exit_wrong_order(self):
         """Test the event for wrong order."""
         # Enter inner zone
-        self.send_message(EVENT_TOPIC, REGION_ENTER_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
         self.assert_location_state('inner')
 
         # Enter inner2 zone
-        message = REGION_ENTER_MESSAGE.copy()
-        message['desc'] = "inner_2"
+        message = build_message(
+            { 'desc': "inner_2" },
+            REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
 
         # Exit inner - should still be in 'inner_2'
-        self.send_message(EVENT_TOPIC, REGION_LEAVE_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
         self.assert_location_state('inner_2')
 
         # Exit inner_2 - should be in 'outer'
-        message = REGION_LEAVE_MESSAGE.copy()
-        message['desc'] = "inner_2"
+        message = build_message(
+            { 'desc': "inner_2" },
+            REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('outer')
 
     def test_event_entry_unknown_zone(self):
         """Test the event for unknown zone."""
         # Just treat as location update
-        message = REGION_ENTER_MESSAGE.copy()
-        message['desc'] = "unknown"
+        message = build_message(
+            { 'desc': "unknown" },
+            REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
-        self.assert_location_latitude(2.0)
+        self.assert_location_latitude(REGION_GPS_ENTER_MESSAGE['lat'])
         self.assert_location_state('outer')
 
     def test_event_exit_unknown_zone(self):
         """Test the event for unknown zone."""
         # Just treat as location update
-        message = REGION_LEAVE_MESSAGE.copy()
-        message['desc'] = "unknown"
+        message = build_message(
+            { 'desc': "unknown" },
+            REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
-        self.assert_location_latitude(2.0)
+        self.assert_location_latitude(REGION_GPS_ENTER_MESSAGE['lat'])
         self.assert_location_state('outer')
+
+#------------------------------------------------------------------------
 
     def test_event_entry_zone_loading_dash(self):
         """Test the event for zone landing."""

@@ -232,6 +232,7 @@ class OwnTracksContext:
         """Set active beacons to the current location."""
         kwargs = kwargs_param.copy()
         # the battery state applies to the tracking device, not the beacon
+        # kwargs location is the beacon's configured lat/lon
         kwargs.pop('battery', None)
         for beacon in self.mobile_beacons_active[dev_id]:
             kwargs['dev_id'] = "{}_{}".format(BEACON_DEV_ID, beacon)
@@ -266,6 +267,9 @@ def _async_transition_message_enter(hass, context, message, location):
 
     if zone is None and message.get('t') == 'b':
         # Not a HA zone, and a beacon so assume mobile
+        # kwargs will contain the lat/lon of the beacon
+        # which is not where the beacon actually is
+        # and is probably set to 0/0
         beacons = context.mobile_beacons_active[dev_id]
         if location not in beacons:
             beacons.append(location)
