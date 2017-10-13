@@ -263,6 +263,7 @@ class DeviceTracker(object):
 
         This method is a coroutine.
         """
+        _LOGGER.info('async_see dev_id: %s attr: %s gps: %s', dev_id, attributes, gps)
         if mac is None and dev_id is None:
             raise HomeAssistantError('Neither mac or device id passed in')
         elif mac is not None:
@@ -478,6 +479,7 @@ class Device(Entity):
                    gps: GPSType=None, gps_accuracy=0, battery: str=None,
                    attributes: dict=None, source_type: str=SOURCE_TYPE_GPS):
         """Mark the device as seen."""
+        _LOGGER.info("async_seen self.dev_id: %s attr: %s gps: %s", self.dev_id, attributes, gps)
         self.source_type = source_type
         self.last_seen = dt_util.utcnow()
         self.host_name = host_name
