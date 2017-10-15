@@ -287,7 +287,7 @@ def _async_transition_message_enter(hass, context, message, location):
     dev_id, kwargs = _parse_see_args(message)
 
     if zone is None and message.get('t') == 'b':
-        # Not a HA zone, and a beacon so assume mobile
+        # Not a HA zone, and a beacon so mobile beacon.
         # kwargs will contain the lat/lon of the beacon
         # which is not where the beacon actually is
         # and is probably set to 0/0
@@ -295,7 +295,6 @@ def _async_transition_message_enter(hass, context, message, location):
         if location not in beacons:
             beacons.append(location)
         _LOGGER.info("Added beacon %s", location)
-        _LOGGER.info("current beacons: %s", beacons)
         yield from context.async_see_beacons(hass, dev_id, kwargs)
     else:
         # Normal region
