@@ -774,7 +774,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_location_state('inner')
 
     # ------------------------------------------------------------------------
-    # Region Beacon based event entry / exit testing
+    # Mobile Beacon based event entry / exit testing
 
     def test_mobile_enter_move_beacon(self):
         """Test the movement of a beacon."""
@@ -858,7 +858,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         self.hass.block_till_done()
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
-        self.assertEqual(self.context.mobile_beacons_active['greg_phone'], [])
+        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']), 0)
 
     def test_mobile_multiple_enter_exit(self):
         """Test the multiple entering."""
@@ -866,10 +866,10 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
 
-        self.assertEqual(self.context.mobile_beacons_active['greg_phone'], [])
+        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']), 0)
 
     def test_complex_movement(self):
-        # track start location outer
+        """Test a complex sequence representative of real-world use"""
 
         # I am in the outer zone.
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
@@ -968,6 +968,98 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_mobile_tracker_latitude(lost_keys_location_message['lat'])
         self.assert_location_state('not_home')
         self.assert_mobile_tracker_state('outer')
+
+    def test_complex_movement_sticky_keys(self):
+        """ Test a complex sequence which was previously broken """
+
+        # I am not_home
+        self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
+        self.assert_location_state('outer')
+
+        # gps to inner location and event, as actually happens with OwnTracks
+        location_message = build_message(
+            { 'lat': REGION_GPS_ENTER_MESSAGE['lat'],
+              'lon': REGION_GPS_ENTER_MESSAGE['lon'] },
+            LOCATION_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_state('inner')
+
+        # see keys mobile beacon and location message as actually happens
+        location_message = build_message(
+            { 'lat': location_message['lat'] + FIVE_M,
+              'lon': location_message['lon'] + FIVE_M },
+            LOCATION_MESSAGE)
+        self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_mobile_tracker_latitude(INNER_ZONE['latitude'])
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # region beacon enter inner event and location as actually happens
+        # with OwnTracks
+        location_message = build_message(
+            { 'lat': location_message['lat'] + FIVE_M,
+              'lon': location_message['lon'] + FIVE_M },
+            LOCATION_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_BEACON_ENTER_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_state('inner')
+
+        # This sequence of moves would cause keys to follow
+        # greg_phone around even after the OwnTracks sent
+        # a mobile beacon 'leave' event for the keys.
+        # leave keys
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # leave inner region beacon
+        self.send_message(EVENT_TOPIC, REGION_BEACON_LEAVE_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # enter inner region beacon
+        self.send_message(EVENT_TOPIC, REGION_BEACON_ENTER_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_latitude(INNER_ZONE['latitude'])
+        self.assert_location_state('inner')
+
+        # enter keys
+        self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # leave keys
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # leave inner region beacon
+        self.send_message(EVENT_TOPIC, REGION_BEACON_LEAVE_MESSAGE)
+        self.send_message(LOCATION_TOPIC, location_message)
+        self.assert_location_state('inner')
+        self.assert_mobile_tracker_state('inner')
+
+        # GPS leave inner region, I'm in the 'outer' region now
+        # but on GPS coords
+        leave_location_message = build_message(
+            { 'lat': REGION_GPS_LEAVE_MESSAGE['lat'],
+              'lon': REGION_GPS_LEAVE_MESSAGE['lon'] },
+            LOCATION_MESSAGE)
+        self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
+        self.send_message(LOCATION_TOPIC, leave_location_message)
+        self.assert_location_state('outer')
+        self.assert_mobile_tracker_state('inner')
+        self.assert_location_latitude(REGION_GPS_LEAVE_MESSAGE['lat'])
+        self.assert_mobile_tracker_latitude(INNER_ZONE['latitude'])
 
     def test_waypoint_import_simple(self):
         """Test a simple import of list of waypoints."""
@@ -1193,7 +1285,6 @@ class TestDeviceTrackerOwnTrackConfigs(BaseMQTT):
     try:
         import libnacl
     except (ImportError, OSError):
-        import pdb; pdb.set_trace()
         libnacl = None
 
     @unittest.skipUnless(libnacl, "libnacl/libsodium is not installed")
