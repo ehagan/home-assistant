@@ -193,7 +193,7 @@ class OwnTracksContext:
         self.async_see = async_see
         self.secret = secret
         self.max_gps_accuracy = max_gps_accuracy
-        self.mobile_beacons_active = defaultdict(list)
+        self.mobile_beacons_active = defaultdict(set)
         self.regions_entered = defaultdict(list)
         self.import_waypoints = import_waypoints
         self.waypoint_whitelist = waypoint_whitelist
@@ -293,7 +293,7 @@ def _async_transition_message_enter(hass, context, message, location):
         # and is probably set to 0/0
         beacons = context.mobile_beacons_active[dev_id]
         if location not in beacons:
-            beacons.append(location)
+            beacons.add(location)
         _LOGGER.info("Added beacon %s", location)
         yield from context.async_see_beacons(hass, dev_id, kwargs)
     else:
@@ -316,30 +316,29 @@ def _async_transition_message_leave(hass, context, message, location):
     if location in regions:
         regions.remove(location)
 
-    new_region = regions[-1] if regions else None
-
-    if new_region:
-        # Exit to previous region
-        zone = hass.states.get(
-            "zone.{}".format(slugify(new_region)))
-        _set_gps_from_zone(kwargs, new_region, zone)
-        _LOGGER.info("Exit to %s", new_region)
-        yield from context.async_see(**kwargs)
-        yield from context.async_see_beacons(hass, dev_id, kwargs)
-        return
-
-    else:
-        _LOGGER.info("Exit to GPS")
-
-        # Check for GPS accuracy
-        if context.async_valid_accuracy(message):
-            yield from context.async_see(**kwargs)
-            yield from context.async_see_beacons(hass, dev_id, kwargs)
 
     beacons = context.mobile_beacons_active[dev_id]
     if location in beacons:
         beacons.remove(location)
         _LOGGER.info("Remove beacon %s", location)
+        yield from context.async_see_beacons(hass, dev_id, kwargs)
+    else:
+        new_region = regions[-1] if regions else None
+        if new_region:
+            # Exit to previous region
+            zone = hass.states.get(
+                "zone.{}".format(slugify(new_region)))
+            _set_gps_from_zone(kwargs, new_region, zone)
+            _LOGGER.info("Exit to %s", new_region)
+            yield from context.async_see(**kwargs)
+            yield from context.async_see_beacons(hass, dev_id, kwargs)
+        else:
+            _LOGGER.info("Exit to GPS")
+
+            # Check for GPS accuracy
+            if context.async_valid_accuracy(message):
+                yield from context.async_see(**kwargs)
+                yield from context.async_see_beacons(hass, dev_id, kwargs)
 
 
 @HANDLERS.register('transition')
