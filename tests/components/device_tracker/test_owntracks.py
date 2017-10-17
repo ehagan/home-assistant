@@ -577,7 +577,6 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_location_latitude(REGION_GPS_LEAVE_MESSAGE['lat'])
         self.assert_location_state('outer')
 
-
     def test_event_entry_zone_loading_dash(self):
         """Test the event for zone landing."""
         # Make sure the leading - is ignored
@@ -654,14 +653,14 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # See 'inner_2' region beacon
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_BEACON_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
 
         # Exit inner_2 - should be in 'inner'
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_BEACON_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner')
@@ -676,7 +675,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_location_accuracy(INNER_ZONE['radius'])
         self.assert_location_state('inner')
 
-    def test_event_gps_entry_exit_wrong_order(self):
+    def test_event_region_entry_exit_wrong_order(self):
         """Test the event for wrong order."""
         # Enter inner zone
         self.send_message(EVENT_TOPIC, REGION_BEACON_ENTER_MESSAGE)
@@ -684,7 +683,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Enter inner2 zone
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_BEACON_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
@@ -695,7 +694,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Exit inner_2 - should be in 'outer'
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_BEACON_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
@@ -717,7 +716,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # None and no GPS coords so set the beacon to.
 
         message = build_message(
-            { 'desc': "unknown" },
+            {'desc': "unknown"},
             REGION_BEACON_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
@@ -744,7 +743,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_location_state('outer')
 
         message = build_message(
-            { 'desc': "unknown" },
+            {'desc': "unknown"},
             REGION_BEACON_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
@@ -759,7 +758,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # Ownracks uses this to switch on hold
 
         message = build_message(
-            { 'desc': "-inner" },
+            {'desc': "-inner"},
             REGION_BEACON_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner')
@@ -963,7 +962,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_mobile_tracker_state('outer')
 
     def test_complex_movement_sticky_keys_beacon(self):
-        """ Test a complex sequence which was previously broken."""
+        """Test a complex sequence which was previously broken."""
         # I am not_home
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
         self.assert_location_state('outer')
@@ -1117,7 +1116,6 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         new_wayp = self.hass.states.get(WAYPOINT_ENTITY_NAMES[0])
         self.assertTrue(wayp == new_wayp)
 
-TEST_SECRET_KEY = 's3cretkey'
 
 def generate_ciphers(secret):
     """ Generate test ciphers for the DEFAULT_LOCATION_MESSAGE."""
@@ -1139,11 +1137,15 @@ def generate_ciphers(secret):
         ctxt = ''
 
     mctxt = base64.b64encode(
-        pickle.dumps((secret.encode("utf-8"),
+        pickle.dumps(
+            (secret.encode("utf-8"),
              json.dumps(DEFAULT_LOCATION_MESSAGE).encode("utf-8"))
-        )).decode("utf-8")
+        )
+    ).decode("utf-8")
     return (ctxt, mctxt)
 
+
+TEST_SECRET_KEY = 's3cretkey'
 
 CIPHERTEXT, MOCK_CIPHERTEXT = generate_ciphers(TEST_SECRET_KEY)
 
