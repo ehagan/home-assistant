@@ -1118,7 +1118,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
 
 def generate_ciphers(secret):
-    """ Generate test ciphers for the DEFAULT_LOCATION_MESSAGE."""
+    """Generate test ciphers for the DEFAULT_LOCATION_MESSAGE."""
     # libnacl ciphertext generation will fail if the module
     # cannot be imported. However, the test for decryption
     # also relies on this library and won't be run without it.
