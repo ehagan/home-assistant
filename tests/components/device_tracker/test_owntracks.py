@@ -34,12 +34,12 @@ CONF_WAYPOINT_IMPORT = owntracks.CONF_WAYPOINT_IMPORT
 CONF_WAYPOINT_WHITELIST = owntracks.CONF_WAYPOINT_WHITELIST
 CONF_SECRET = owntracks.CONF_SECRET
 
-TEST_ZONE_LAT=45.0
-TEST_ZONE_LON=90.0
-TEST_ZONE_DEG_PER_M=0.0000127
-FIVE_M=TEST_ZONE_DEG_PER_M * 5.0
+TEST_ZONE_LAT = 45.0
+TEST_ZONE_LON = 90.0
+TEST_ZONE_DEG_PER_M = 0.0000127
+FIVE_M = TEST_ZONE_DEG_PER_M * 5.0
 
-#------------------------------------------------------------------------
+
 # Home Assistant Zones
 INNER_ZONE = {
     'name': 'zone',
@@ -57,16 +57,14 @@ OUTER_ZONE = {
 
 
 def build_message(test_params, default_params):
-    """ Build a test message from a set of the parameters
-        of interest and a default message to override
-        with those test parameters """
+    """Build a test message from overrides and another message."""
+
     new_params = default_params.copy()
     new_params.update(test_params)
     return new_params
 
-#------------------------------------------------------------------------
-# Default message parameters
 
+# Default message parameters
 DEFAULT_LOCATION_MESSAGE = {
     '_type': 'location',
     'lon': OUTER_ZONE['longitude'],
@@ -131,70 +129,70 @@ DEFAULT_BEACON_TRANSITION_MESSAGE = {
 LOCATION_MESSAGE = DEFAULT_LOCATION_MESSAGE
 
 LOCATION_MESSAGE_INACCURATE = build_message(
-    { 'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
-      'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
-      'acc': 2000 },
+    {'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
+     'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
+     'acc': 2000},
     LOCATION_MESSAGE)
 
 LOCATION_MESSAGE_ZERO_ACCURACY = build_message(
-    { 'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
-      'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
-      'acc': 0 },
+    {'lat': INNER_ZONE['latitude'] - ZONE_EDGE,
+     'lon': INNER_ZONE['longitude'] - ZONE_EDGE,
+     'acc': 0},
     LOCATION_MESSAGE)
 
 LOCATION_MESSAGE_NOT_HOME = build_message(
-    { 'lat': OUTER_ZONE['latitude'] - 2.0,
-      'lon': INNER_ZONE['longitude'] - 2.0,
-      'acc': 100 },
+    {'lat': OUTER_ZONE['latitude'] - 2.0,
+     'lon': INNER_ZONE['longitude'] - 2.0,
+     'acc': 100},
     LOCATION_MESSAGE)
 
 # Region GPS messages
 REGION_GPS_ENTER_MESSAGE = DEFAULT_TRANSITION_MESSAGE
 
 REGION_GPS_LEAVE_MESSAGE = build_message(
-    { 'lon': INNER_ZONE['longitude'] - ZONE_EDGE * 10,
-      'lat': INNER_ZONE['latitude'] - ZONE_EDGE * 10,
-      'event': 'leave' },
+    {'lon': INNER_ZONE['longitude'] - ZONE_EDGE * 10,
+     'lat': INNER_ZONE['latitude'] - ZONE_EDGE * 10,
+     'event': 'leave'},
     DEFAULT_TRANSITION_MESSAGE)
 
 REGION_GPS_ENTER_MESSAGE_INACCURATE = build_message(
-    { 'acc': 2000 },
+    {'acc': 2000},
     REGION_GPS_ENTER_MESSAGE)
 
 REGION_GPS_LEAVE_MESSAGE_INACCURATE = build_message(
-    { 'acc': 2000 },
+    {'acc': 2000},
     REGION_GPS_LEAVE_MESSAGE)
 
 REGION_GPS_ENTER_MESSAGE_ZERO = build_message(
-    { 'acc': 0 },
+    {'acc': 0},
     REGION_GPS_ENTER_MESSAGE)
 
 REGION_GPS_LEAVE_MESSAGE_ZERO = build_message(
-    { 'acc': 0 },
+    {'acc': 0},
     REGION_GPS_LEAVE_MESSAGE)
 
 REGION_GPS_LEAVE_MESSAGE_OUTER = build_message(
-    { 'lon': OUTER_ZONE['longitude'] - 2.0,
-      'lat': OUTER_ZONE['latitude'] - 2.0,
-      'desc': "outer",
-      'event': 'leave' },
+    {'lon': OUTER_ZONE['longitude'] - 2.0,
+     'lat': OUTER_ZONE['latitude'] - 2.0,
+     'desc': 'outer',
+     'event': 'leave'},
     DEFAULT_TRANSITION_MESSAGE)
 
 # Region Beacon messages
 REGION_BEACON_ENTER_MESSAGE = DEFAULT_BEACON_TRANSITION_MESSAGE
 
 REGION_BEACON_LEAVE_MESSAGE = build_message(
-    { 'event': 'leave' },
+    {'event': 'leave'},
     DEFAULT_BEACON_TRANSITION_MESSAGE)
 
 # Mobile Beacon messages
 MOBILE_BEACON_ENTER_EVENT_MESSAGE = build_message(
-    { 'desc': IBEACON_DEVICE },
+    {'desc': IBEACON_DEVICE},
     DEFAULT_BEACON_TRANSITION_MESSAGE)
 
 MOBILE_BEACON_LEAVE_EVENT_MESSAGE = build_message(
-    { 'desc': IBEACON_DEVICE,
-      'event': 'leave' },
+    {'desc': IBEACON_DEVICE,
+     'event': 'leave'},
     DEFAULT_BEACON_TRANSITION_MESSAGE)
 
 # Waypoint messages
@@ -243,6 +241,7 @@ WAYPOINT_ENTITY_NAMES = ['zone.greg_phone__exp_wayp1',
 
 BAD_JSON_PREFIX = '--$this is bad json#--'
 BAD_JSON_SUFFIX = '** and it ends here ^^'
+
 
 class BaseMQTT(unittest.TestCase):
     """Base MQTT assert functions."""
