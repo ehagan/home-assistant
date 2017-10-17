@@ -58,7 +58,6 @@ OUTER_ZONE = {
 
 def build_message(test_params, default_params):
     """Build a test message from overrides and another message."""
-
     new_params = default_params.copy()
     new_params.update(test_params)
     return new_params
@@ -353,8 +352,6 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         state = self.hass.states.get(dev_id)
         self.assertEqual(state.attributes.get('gps_accuracy'), accuracy)
 
-#------------------------------------------------------------------------
-
     def test_location_invalid_devid(self):  # pylint: disable=invalid-name
         """Test the update of a location."""
         self.send_message('owntracks/paulus/nexus-5x', LOCATION_MESSAGE)
@@ -363,8 +360,6 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
     def test_location_update(self):
         """Test the update of a location."""
-        state = self.hass.states.get(DEVICE_TRACKER_STATE)
-
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
 
         self.assert_location_latitude(LOCATION_MESSAGE['lat'])
@@ -445,7 +440,6 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
     def test_event_gps_entry_inaccurate(self):
         """Test the event for inaccurate entry."""
-
         # Set location to the outer zone.
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
 
@@ -501,8 +495,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Exit message far away GPS location
         message = build_message(
-            { 'lon': 90.0,
-              'lat': 90.0 },
+            {'lon': 90.0,
+             'lat': 90.0},
             REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
 
@@ -519,14 +513,14 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Enter inner2 zone
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
 
         # Exit inner_2 - should be in 'inner'
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner')
@@ -545,7 +539,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Enter inner2 zone
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner_2')
@@ -556,7 +550,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # Exit inner_2 - should be in 'outer'
         message = build_message(
-            { 'desc': "inner_2" },
+            {'desc': "inner_2"},
             REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_latitude(REGION_GPS_LEAVE_MESSAGE['lat'])
@@ -567,7 +561,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         """Test the event for unknown zone."""
         # Just treat as location update
         message = build_message(
-            { 'desc': "unknown" },
+            {'desc': "unknown"},
             REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_latitude(REGION_GPS_ENTER_MESSAGE['lat'])
@@ -577,7 +571,7 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         """Test the event for unknown zone."""
         # Just treat as location update
         message = build_message(
-            { 'desc': "unknown" },
+            {'desc': "unknown"},
             REGION_GPS_LEAVE_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_latitude(REGION_GPS_LEAVE_MESSAGE['lat'])
@@ -589,13 +583,11 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # Make sure the leading - is ignored
         # Ownracks uses this to switch on hold
         message = build_message(
-            { 'desc': "-inner" },
+            {'desc': "-inner"},
             REGION_GPS_ENTER_MESSAGE)
         self.send_message(EVENT_TOPIC, message)
         self.assert_location_state('inner')
 
-
-    # ------------------------------------------------------------------------
     # Region Beacon based event entry / exit testing
 
     def test_event_region_entry_exit(self):
@@ -853,11 +845,13 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
                 json.dumps(MOBILE_BEACON_LEAVE_EVENT_MESSAGE))
 
         fire_mqtt_message(
-            self.hass, EVENT_TOPIC, json.dumps(MOBILE_BEACON_ENTER_EVENT_MESSAGE))
+            self.hass, EVENT_TOPIC,
+            json.dumps(MOBILE_BEACON_ENTER_EVENT_MESSAGE))
 
         self.hass.block_till_done()
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
-        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']), 0)
+        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']),
+                         0)
 
     def test_mobile_multiple_enter_exit(self):
         """Test the multiple entering."""
@@ -865,19 +859,19 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
 
-        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']), 0)
+        self.assertEqual(len(self.context.mobile_beacons_active['greg_phone']),
+                         0)
 
     def test_complex_movement(self):
-        """Test a complex sequence representative of real-world use"""
-
+        """Test a complex sequence representative of real-world use."""
         # I am in the outer zone.
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
         self.assert_location_state('outer')
 
         # gps to inner location and event, as actually happens with OwnTracks
         location_message = build_message(
-            { 'lat': REGION_GPS_ENTER_MESSAGE['lat'],
-              'lon': REGION_GPS_ENTER_MESSAGE['lon'] },
+            {'lat': REGION_GPS_ENTER_MESSAGE['lat'],
+             'lon': REGION_GPS_ENTER_MESSAGE['lon']},
             LOCATION_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
         self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
@@ -887,8 +881,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # region beacon enter inner event and location as actually happens
         # with OwnTracks
         location_message = build_message(
-            { 'lat': location_message['lat'] + FIVE_M,
-              'lon': location_message['lon'] + FIVE_M },
+            {'lat': location_message['lat'] + FIVE_M,
+             'lon': location_message['lon'] + FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, REGION_BEACON_ENTER_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -897,8 +891,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # see keys mobile beacon and location message as actually happens
         location_message = build_message(
-            { 'lat': location_message['lat'] + FIVE_M,
-              'lon': location_message['lon'] + FIVE_M },
+            {'lat': location_message['lat'] + FIVE_M,
+             'lon': location_message['lon'] + FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -915,8 +909,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # gps out of inner event and location
         location_message = build_message(
-            { 'lat': REGION_GPS_LEAVE_MESSAGE['lat'],
-              'lon': REGION_GPS_LEAVE_MESSAGE['lon'] },
+            {'lat': REGION_GPS_LEAVE_MESSAGE['lat'],
+             'lon': REGION_GPS_LEAVE_MESSAGE['lon']},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -927,8 +921,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # region beacon leave inner
         location_message = build_message(
-            { 'lat': location_message['lat'] - FIVE_M,
-              'lon': location_message['lon'] - FIVE_M },
+            {'lat': location_message['lat'] - FIVE_M,
+             'lon': location_message['lon'] - FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, REGION_BEACON_LEAVE_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -939,8 +933,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # lose keys mobile beacon
         lost_keys_location_message = build_message(
-            { 'lat': location_message['lat'] - FIVE_M,
-              'lon': location_message['lon'] - FIVE_M },
+            {'lat': location_message['lat'] - FIVE_M,
+             'lon': location_message['lon'] - FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(LOCATION_TOPIC, lost_keys_location_message)
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_LEAVE_EVENT_MESSAGE)
@@ -959,8 +953,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # location move not home
         location_message = build_message(
-            { 'lat': LOCATION_MESSAGE_NOT_HOME['lat'] - FIVE_M,
-              'lon': LOCATION_MESSAGE_NOT_HOME['lon'] - FIVE_M },
+            {'lat': LOCATION_MESSAGE_NOT_HOME['lat'] - FIVE_M,
+             'lon': LOCATION_MESSAGE_NOT_HOME['lon'] - FIVE_M},
             LOCATION_MESSAGE_NOT_HOME)
         self.send_message(LOCATION_TOPIC, location_message)
         self.assert_location_latitude(location_message['lat'])
@@ -968,17 +962,16 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         self.assert_location_state('not_home')
         self.assert_mobile_tracker_state('outer')
 
-    def test_complex_movement_sticky_keys(self):
-        """ Test a complex sequence which was previously broken """
-
+    def test_complex_movement_sticky_keys_beacon(self):
+        """ Test a complex sequence which was previously broken."""
         # I am not_home
         self.send_message(LOCATION_TOPIC, LOCATION_MESSAGE)
         self.assert_location_state('outer')
 
         # gps to inner location and event, as actually happens with OwnTracks
         location_message = build_message(
-            { 'lat': REGION_GPS_ENTER_MESSAGE['lat'],
-              'lon': REGION_GPS_ENTER_MESSAGE['lon'] },
+            {'lat': REGION_GPS_ENTER_MESSAGE['lat'],
+             'lon': REGION_GPS_ENTER_MESSAGE['lon']},
             LOCATION_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
         self.send_message(EVENT_TOPIC, REGION_GPS_ENTER_MESSAGE)
@@ -987,8 +980,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
 
         # see keys mobile beacon and location message as actually happens
         location_message = build_message(
-            { 'lat': location_message['lat'] + FIVE_M,
-              'lon': location_message['lon'] + FIVE_M },
+            {'lat': location_message['lat'] + FIVE_M,
+             'lon': location_message['lon'] + FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, MOBILE_BEACON_ENTER_EVENT_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -1000,8 +993,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # region beacon enter inner event and location as actually happens
         # with OwnTracks
         location_message = build_message(
-            { 'lat': location_message['lat'] + FIVE_M,
-              'lon': location_message['lon'] + FIVE_M },
+            {'lat': location_message['lat'] + FIVE_M,
+             'lon': location_message['lon'] + FIVE_M},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, REGION_BEACON_ENTER_MESSAGE)
         self.send_message(LOCATION_TOPIC, location_message)
@@ -1050,8 +1043,8 @@ class TestDeviceTrackerOwnTracks(BaseMQTT):
         # GPS leave inner region, I'm in the 'outer' region now
         # but on GPS coords
         leave_location_message = build_message(
-            { 'lat': REGION_GPS_LEAVE_MESSAGE['lat'],
-              'lon': REGION_GPS_LEAVE_MESSAGE['lon'] },
+            {'lat': REGION_GPS_LEAVE_MESSAGE['lat'],
+             'lon': REGION_GPS_LEAVE_MESSAGE['lon']},
             LOCATION_MESSAGE)
         self.send_message(EVENT_TOPIC, REGION_GPS_LEAVE_MESSAGE)
         self.send_message(LOCATION_TOPIC, leave_location_message)
@@ -1128,19 +1121,20 @@ TEST_SECRET_KEY = 's3cretkey'
 
 def generate_ciphers(secret):
     """ Generate test ciphers for the DEFAULT_LOCATION_MESSAGE."""
-
     # libnacl ciphertext generation will fail if the module
     # cannot be imported. However, the test for decryption
     # also relies on this library and won't be run without it.
-    import json, pickle, base64
+    import json
+    import pickle
+    import base64
 
     try:
         from libnacl import crypto_secretbox_KEYBYTES as KEYLEN
         from libnacl.secret import SecretBox
-        key = secret.encode("utf-8")[:KEYLEN].ljust(KEYLEN,b'\0')
+        key = secret.encode("utf-8")[:KEYLEN].ljust(KEYLEN, b'\0')
         ctxt = base64.b64encode(SecretBox(key).encrypt(
-            json.dumps(DEFAULT_LOCATION_MESSAGE).encode("utf-8"))
-        ).decode("utf-8")
+                  json.dumps(DEFAULT_LOCATION_MESSAGE).encode("utf-8"))
+                  ).decode("utf-8")
     except (ImportError, OSError):
         ctxt = ''
 
@@ -1150,17 +1144,21 @@ def generate_ciphers(secret):
         )).decode("utf-8")
     return (ctxt, mctxt)
 
+
 CIPHERTEXT, MOCK_CIPHERTEXT = generate_ciphers(TEST_SECRET_KEY)
 
 ENCRYPTED_LOCATION_MESSAGE = {
     # Encrypted version of LOCATION_MESSAGE using libsodium and TEST_SECRET_KEY
     '_type': 'encrypted',
-    'data': CIPHERTEXT }
+    'data': CIPHERTEXT
+}
 
 MOCK_ENCRYPTED_LOCATION_MESSAGE = {
     # Mock-encrypted version of LOCATION_MESSAGE using pickle
     '_type': 'encrypted',
-    'data': MOCK_CIPHERTEXT }
+    'data': MOCK_CIPHERTEXT
+}
+
 
 def mock_cipher():
     """Return a dummy pickle-based cipher."""
@@ -1172,6 +1170,7 @@ def mock_cipher():
             raise ValueError()
         return plaintext
     return (len(TEST_SECRET_KEY), mock_decrypt)
+
 
 class TestDeviceTrackerOwnTrackConfigs(BaseMQTT):
     """Test the OwnTrack sensor."""
