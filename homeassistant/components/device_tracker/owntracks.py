@@ -235,7 +235,8 @@ class OwnTracksContext:
         # Mobile beacons should always be set to the location of the
         # tracking device. I get the device state and make the necessary
         # changes to kwargs.
-        device_tracker_state = hass.states.get("device_tracker.{}".format(dev_id))
+        device_tracker_state = hass.states.get(
+            "device_tracker.{}".format(dev_id))
         _LOGGER.info("device tracker state: %s", device_tracker_state)
 
         if device_tracker_state is not None:
@@ -255,7 +256,8 @@ class OwnTracksContext:
         # kwargs location is the beacon's configured lat/lon
         kwargs.pop('battery', None)
         for beacon in self.mobile_beacons_active[dev_id]:
-            _LOGGER.info("async_see_beacons beacon: %s kwargs %s", beacon, kwargs)
+            _LOGGER.info("async_see_beacons beacon: %s kwargs %s",
+                         beacon, kwargs)
             kwargs['dev_id'] = "{}_{}".format(BEACON_DEV_ID, beacon)
             kwargs['host_name'] = beacon
             yield from self.async_see(**kwargs)
@@ -315,7 +317,6 @@ def _async_transition_message_leave(hass, context, message, location):
 
     if location in regions:
         regions.remove(location)
-
 
     beacons = context.mobile_beacons_active[dev_id]
     if location in beacons:
